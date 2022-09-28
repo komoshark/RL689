@@ -5,10 +5,13 @@
 # This CSCE-689 RL assignment codebase was developed at Texas A&M University.
 # The core code base was developed by Guni Sharon (guni@tamu.edu).
 
+from re import A, S
+import this
 import numpy as np
 import heapq
 from Solvers.Abstract_Solver import AbstractSolver, Statistics
 import os
+from lib.envs.gridworld import GridworldEnv
 
 class ValueIteration(AbstractSolver):
 
@@ -60,16 +63,16 @@ class ValueIteration(AbstractSolver):
         """
 
         # you can add variables here if it is helpful
-
         # Update the estimated value of each state
         for each_state in range(self.env.nS):
-
             ###################################################
             #            Compute self.V here                  #
             # Do a one-step lookahead to find the best action #
             #           YOUR IMPLEMENTATION HERE              #
             ###################################################
-            raise NotImplementedError
+            A = AsynchVI.one_step_lookahead(self, state=each_state)
+            best_value = np.max(A)
+            self.V[each_state] = best_value
 
         # Dont worry about this part
         self.statistics[Statistics.Rewards.value] = np.sum(self.V)
@@ -87,7 +90,6 @@ class ValueIteration(AbstractSolver):
             A function that takes an observation as input and returns a Greedy
                action
         """
-
         def policy_fn(state):
             """
             What is this function?
@@ -100,11 +102,9 @@ class ValueIteration(AbstractSolver):
                 self.env.nA:
                     number of actions in the environment
             """
-
-            ################################
-            #   YOUR IMPLEMENTATION HERE   #
-            ################################
-            raise NotImplementedError
+            A = AsynchVI.one_step_lookahead(self, state=state)
+            best_action = np.argmax(A)
+            return best_action
 
         return policy_fn
 
@@ -157,7 +157,15 @@ class AsynchVI(ValueIteration):
         # Do a one-step lookahead to find the best action       #
         # Update the value function. Ref: Sutton book eq. 4.10. #
         #########################################################
-        raise NotImplementedError
+        last_state = self.pq.pop()
+        A = self.one_step_lookahead(last_state)
+        best_value = np.max(A)
+        self.V[last_state] = best_value 
+        for s in self.pred[last_state]:
+            actions = self.one_step_lookahead(s)
+            best_action_value = np.max(actions)
+            delta = -abs(best_action_value - self.V[s])
+            self.pq.update(s, delta)
 
         # you can ignore this part
         self.statistics[Statistics.Rewards.value] = np.sum(self.V)
